@@ -41,6 +41,7 @@ class LineInteractor:
         self.low = low
         self.high = high
         self.tapered = tapered
+        self.background = None
 
         linedata = [pt_black, pt_mid, pt_white]
 
@@ -65,6 +66,7 @@ class LineInteractor:
 
         self._ind = None # the active vert
 
+        canvas.mpl_connect('resize_event', self.resize_callback)
         canvas.mpl_connect('draw_event', self.draw_callback)
         canvas.mpl_connect('button_press_event', self.button_press_callback)
         canvas.mpl_connect('button_release_event', self.button_release_callback)
@@ -268,8 +270,15 @@ class LineInteractor:
 
         return xs,ys
 
+    def resize_callback(self,event):
+        print "resizing..."
+        self.background = None
+
     def draw_callback(self, event):
-        self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+        print "Storing background..."
+        if self.background is None:
+            self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+
         self.ax.draw_artist(self.poly)
         self.ax.draw_artist(self.line)
         self.canvas.blit(self.ax.bbox)
@@ -390,20 +399,22 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
+    layout = (2,2)
+    fig,subplots = plt.subplots(*layout,figsize=(15,15))
 
-    ptb = (-1, -5)
-    ptw = (0, 0)
-    ptm = (5,1)
-    t0 = 0.2
-    t1 = 0.8
+    interactors = []
+    for ax in subplots.flat:
+        ptb = (-1, -5)
+        ptw = (0, 0)
+        ptm = (5,1)
+        t0 = 0.2
+        t1 = 0.8
 
-    interactor = LineInteractor(fig, ax, ptb, ptm, ptw, t0=t0, t1=t1)
-    ax.set_title('drag vertices to update line')
-    ax.set_xlim(-10,10)
-    ax.set_ylim(-10,10)
-    ax.set_aspect('equal')
+        interactors.append(LineInteractor(fig, ax, ptb, ptm, ptw, t0=t0, t1=t1))
+        ax.set_title('drag vertices to update line')
+        ax.set_xlim(-10,10)
+        ax.set_ylim(-10,10)
+        ax.set_aspect('equal')
 
     plt.show()
 
