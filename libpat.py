@@ -29,18 +29,23 @@ class Analysis(object):
     def set_ssize(self,ssize):
         if ssize > 0:
             n = self.rgb_pca.shape[0] #np.product(self.r.shape)
-            print "n=%d" % n
+            #print "n=%d" % n
 
             if 0:
                 #This is just for display, doesn't matter if several crosses overlap.
                 print ">>> From %d points, displaying %d" % (n, ssize)
                 self.sel_indexes = np.random.choice(n,ssize) #,replace=False)
             elif 1:
+                print ">>> Using Colour deduplication..."
+                # This one is a bit more clever and tries grid deduplication
                 r = self.rgb_values[:,0].astype(np.uint16)
                 g = self.rgb_values[:,1].astype(np.uint16)
                 b = self.rgb_values[:,2].astype(np.uint16)
-                self.sel_indexes = nativebb.dedupcol_indexes(r,g,b,self.nbit,6)
-                print ">>> Colour deduplication from %d to %d unique." % (n,self.sel_indexes.shape[0])
+
+                #Need at least 10 points in the grid location
+                t_truth = 10
+                self.sel_indexes = nativebb.dedupcol_indexes(r,g,b,self.nbit,6, t_truth)
+                print "    from %d to %d unique." % (n,self.sel_indexes.shape[0])
 
             else:
                 f = np.sum(self.rgb_values,axis=1)
@@ -82,7 +87,7 @@ class Analysis(object):
         #self.pcanode = mdp.nodes.PCANode()
         self.pcanode = mdp.nodes.NIPALSNode()
         rgb_,wh = self.get_pixels(threshold=0,remove_bg=True)
-        print "begin training..."
+        print "begin pcanode.train()..."
         self.pcanode.train(rgb_)
         print "done!"
         self.rgb_pca = self.pcanode(rgb_)
@@ -425,7 +430,7 @@ class Analysis(object):
         else:
             self.rgb_pca = self.pcanode(self.rgb_selection)
 
-    def plot_pca2d_dots(self, xlim=None, ylim=None, c0=0, c1=1, axs=None, scat=None, fullset=False,unit=True,handle=None):
+    def plot_pca2d_dots(self, xlim=None, ylim=None, c0=0, c1=1, axs=None, scat=None, fullset=False,unit=True,handle=None,alpha=0.2,marker=10):
         if unit:
             ptb = np.zeros(3)
             ptw = np.ones(3)*self.maxval
@@ -460,7 +465,6 @@ class Analysis(object):
         x = self.rgb_pca[:,c0]
         y = self.rgb_pca[:,c1]
         ma = float(self.maxval)
-        alpha = 0.2
         if self.sel_indexes is not None and fullset==False:
             #This is just for display, doesn't matter if several crosses overlap.
             indexes = self.sel_indexes
@@ -483,7 +487,8 @@ class Analysis(object):
         #self.plot_zero(axs,c0,c1)
         #self.plot_one(axs,c0,c1)
         if scat is None:
-            scat = axs.scatter(x,y, s=50, marker='+',color=rgb_selection,alpha=alpha)
+            #scat = axs.scatter(x,y, s=50, marker='+',color=rgb_selection,alpha=alpha)
+            scat = axs.scatter(x,y, s=marker, marker='.', edgecolors=None, color=rgb_selection,alpha=alpha)
         else:
             scat.set_offsets( np.array(zip(x, y)))
             scat.set_color(rgb_selection)
@@ -718,8 +723,8 @@ class Pattern(Analysis):
         return self.r, self.g, self.b
 
 class Image(Analysis):
-    def __init__(self):
-        return
+    def __init__(self,nbit=8):
+        self.nbit = nbit
 
     def get_bandpass(self, input_array, scale1, scale2, kernel, lowpass = False):
         output = np.zeros(input_array.shape, np.float32)
@@ -747,7 +752,8 @@ class Image(Analysis):
             raise ValueError("shape mismatch: objects cannot be broadcast to a single shape")
 
 
-        nbit = 16
+        nbit = self.nbit
+        #print "set_data, nbit=%d" % self.nbit
         if r.dtype == np.uint8 or r.dtype == np.uint16:
             r2, g2, b2 = r.copy(), g.copy(), b.copy()
             if r.dtype == np.uint8:
