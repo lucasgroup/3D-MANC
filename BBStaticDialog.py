@@ -27,8 +27,10 @@ import tkFileDialog, tkMessageBox
 import ast
 
 list_graphs = ["C1 vs C2", "C1 vs C3", "C2 vs C3"]
-default_cols = "(1.0, 0.4, 0.0, 0.8), (0.4, 1.0, 0.0, 0.8), (0.2, 0.0, 1.0, 0.8), (1.0, 1.0, 1.0, 0.8)"
-default_sigmas = "10, 10, 10"
+#default_cols = "(1.0, 0.4, 0.0, 0.8), (0.4, 1.0, 0.0, 0.8), (0.2, 0.0, 1.0, 0.8), (1.0, 1.0, 1.0, 0.8)"
+default_cols = " (0.5, 0.5, 0.5, 1.0), (0.3,1,1,.9), (0.5, 0.0, 0.5, 0.6), (1.0, 0.5, 0.2, 0.6)"
+#default_sigmas = "10, 10, 10"
+default_sigmas = "2,2,2"
 print type(ast.literal_eval("["+default_cols+"]"))
 print type(ast.literal_eval("["+default_sigmas+"]"))
 
@@ -55,6 +57,11 @@ class BBDialog(TkDialog):
 
         self.wm_geometry("700x800")
         self.title("Brainbow segmentation - Copyright (c) 2016 Egor Zindy")
+
+        self.add_menu("File",["Open configuration","Save configuration","|","Exit"])
+        self.add_menu("PCA Figures", ["Save Projections", "Save 3D graph", "Input Image", "Output Image", "|", "1_Include Polygons"])
+        self.add_menu("PCA Matrix", ["Open File", "Save File", "Recompute", "Save HTML report", "|", "1_Unit transform"])
+        self.add_menu("Help",["About"])
 
         self.bars_rgbl = ttk.Entry(self.mainframe,textvariable=self.arrayvar("bars_rgbl"))
         self.bars_rgbl.bind('<Return>', self.OnUpdateBars)
@@ -102,6 +109,7 @@ class BBDialog(TkDialog):
         tick = (self.arrayvar("check_tapered", "on"),"Tapered polygon")
         self.add_control("Region Width",widget,tick=tick,tooltip=tooltip)
 
+        """
         self.btn_input = ttk.Button(self.mainframe, text="Input Image", command=self.OnInput)
         self.btn_output = ttk.Button(self.mainframe, text="Output Image", command=self.OnOutput)
         self.btn_flat = ttk.Button(self.mainframe, text="Save projections", command=self.OnScreenshot)
@@ -118,6 +126,7 @@ class BBDialog(TkDialog):
         widget = [self.btn_openpca, self.btn_savepca, self.btn_recompute, self.btn_report]
         tick = (self.arrayvar("check_unit", "off"),"Unit transform")
         self.add_control("PCA Matrix",widget,tick=tick)
+        """
 
         #self.btn_export = widget = ttk.Button(self.mainframe, text="Send to Imaris", command=self.OnExport)
         #self.add_control(None,widget)
@@ -125,94 +134,6 @@ class BBDialog(TkDialog):
         #we have all the ingredients, now bake the dialog box!
         self.bake(has_cancel=False) #, has_preview=True) #"Calculate")
         self.SetDefaults()
-
-    def OnImport(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoImport()
-
-    def DoImport(self,*args):
-        print "Import!"
-
-    def OnExport(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoExport()
-
-    def DoExport(self,*args):
-        print "Export!"
-
-    def OnOpenPCA(self,*args):
-        '''Print the contents of the array'''
-        self.file_opt['title'] = 'Open a PCA matrix'
-        print "asking for a filename..."
-        filename = tkFileDialog.askopenfilename(**self.file_opt)
-        print "doing the filename..."
-        if filename != "":
-            self.DoOpenPCA(filename)
-
-    def DoOpenPCA(self,*args):
-        print "OpenPCA!"
-
-    def OnSavePCA(self,*args):
-        '''Print the contents of the array'''
-        self.file_opt['title'] = 'Save the current PCA matrix'
-        filename = tkFileDialog.asksaveasfilename(**self.file_opt)
-        print filename
-        if filename != "":
-            self.DoSavePCA(filename)
-
-    def DoSavePCA(self,*args):
-        print "SavePCA!"
-
-    def OnRecompute(self, *args):
-        self.DoRecompute()
-
-    def DoRecompute(self, *args):
-        print "Recompute the PCA!"
-
-    def OnUnit(self,*args):
-        print "Unit PCA!"
-
-    def OnInput(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoInput()
-
-    def DoInput(self,*args):
-        print "Input!"
-
-    def OnOutput(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoOutput()
-
-    def DoOutput(self,*args):
-        print "Output!"
-
-    def OnReport(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoReport()
-
-    def DoReport(self,*args):
-        print "Report!"
-
-    def OnScreenshot(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoScreenshot()
-
-    def DoScreenshot(self,*args):
-        print "Screenshot!"
-
-    def OnScreenshot3d(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoScreenshot3d()
-
-    def DoScreenshot3d(self,*args):
-        print "3D Screenshot!"
 
     def OnDump(self,*args):
         '''Print the contents of the array'''
@@ -226,6 +147,8 @@ class BBDialog(TkDialog):
         self.arrayvar["scale_bt"] = 30
         self.arrayvar["scale_wt"] = 20
         self.arrayvar["scale_w"] = 25
+        self.arrayvar["PCA_Matrix_Unit_transform"] = "off"
+
         #self.arrayvar["channel_r"] = 1
         #self.arrayvar["channel_g"] = 2
         #self.arrayvar["channel_b"] = 3
@@ -241,15 +164,6 @@ class BBDialog(TkDialog):
         options['parent'] = self
         options['title'] = 'PCA matrix'
 
-    #This is specific to the dialog validation and update.
-    #Additionally, the Validate and Update methods are also called.
-    def _Validate(self, arrayvar, elementname):
-        pass
-
-    def _Update(self, arrayvar, elementname):
-        if arrayvar[elementname] == 'None':
-            return
-
     def OnUpdateBars(self,*args):
         self.DoBars()
 
@@ -261,24 +175,6 @@ class BBDialog(TkDialog):
 
     def DoSigmas(self):
         print "Updating sigmas!"
-
-    def OnLoadSettings(self,*args):
-        self.LoadSettings()
-
-    def LoadSettings(self):
-        print "Loading some settings..."
-
-    def OnSaveSettings(self,*args):
-        self.SaveSettings()
-
-    def SaveSettings(self):
-        print "Saving some settings..."
-
-    def OnSaveFigure(self,*args):
-        self.SaveFigure()
-
-    def SaveFigure(self):
-        print "Saving the figure..."
 
     def OnUpdateObjects(self,*args):
         self.UpdateObjects(update=True)

@@ -78,19 +78,8 @@ class MyModule:
         self.Dialog=BBDialog.BBDialog(nsel=2)
         self.Dialog.SetDefaults()
 
-        self.Dialog.DoImport = self.DoImport
-        self.Dialog.DoExport = self.DoExport
-        self.Dialog.DoReport = self.DoReport
-        self.Dialog.DoScreenshot = self.DoScreenshot
-        self.Dialog.DoScreenshot3d = self.DoScreenshot3d
-        self.Dialog.DoInput = self.DoInput
-        self.Dialog.DoOutput = self.DoOutput
         self.Dialog.DoBars = self.DoBars
         self.Dialog.DoSigmas = self.DoSigmas
-        self.Dialog.DoOpenPCA = self.DoOpenPCA
-        self.Dialog.DoSavePCA = self.DoSavePCA
-        self.Dialog.DoRecompute = self.DoRecompute
-        self.Dialog.DoUnit = self.DoUnit
         
         #self.Dialog.ctrl_r.config(from_=1, to=nc)
         #self.Dialog.ctrl_g.config(from_=1, to=nc)
@@ -195,11 +184,14 @@ class MyModule:
 
         if event.inaxes == self.ax4:
             print('!button=%d, x=%d, y=%d, xdata=%f, ydata=%f' % (event.button, event.x, event.y, event.xdata, event.ydata))
-            c1,c2,c3 = self.dataset.get_rgb_value(event.xdata, event.ydata)
+            #This actually returns the pca value...
+            c1,c2,c3 = self.dataset.get_handle_from_pos( event.xdata, event.ydata )
             handle = [c1,c2,c3]
             self.DoImport(pca=False,newset=False,handle=handle)
+
             fig = self.Dialog.figure
             fig.canvas.draw()
+
             #self.handle3d = 
             #print c1,c2,c3
             #self.interactor_c12.set_handle((c1,c2))
@@ -275,7 +267,7 @@ class MyModule:
     def DoImport(self,pca=True,newset=True,handle=None):
 
         arrayvar = self.Dialog.arrayvar
-        is_unit = arrayvar["check_unit"] == "on"
+        is_unit = arrayvar["PCA_Matrix_Unit_transform"] == "on"
 
         colors = ast.literal_eval("["+arrayvar["bars_rgbl"]+"]")
         has_noise = arrayvar["check_noise"] == "on"
@@ -368,8 +360,12 @@ class MyModule:
         img = Image.fromarray(rgb_uint8)
         img.save(file_path)
 
-    def DoOpenPCA(self,filename):
-        print "Opening matrix file...",filename
+    def DoOpenPCA(self):
+        self.Dialog.file_opt['title'] = 'Open a PCA matrix'
+        filename = tkFileDialog.askopenfilename(**self.Dialog.file_opt)
+        if filename == "":
+            return
+
         f = open(filename, 'rb')
         pcanode = cPickle.load(f)
         self.dataset.pcanode = pcanode
@@ -383,10 +379,13 @@ class MyModule:
         fig = self.Dialog.figure
         fig.canvas.draw()
 
-    def DoSavePCA(self,filename):
-        print "saving...",filename
+    def DoSavePCA(self):
+        self.Dialog.file_opt['title'] = 'Save the current PCA matrix'
+        filename = tkFileDialog.asksaveasfilename(**self.Dialog.file_opt)
+        if filename == "":
+            return
+
         handle = self.dataset.get_rgb_col(self.get_handle(),dtype=int)
-        print handle
         self.dataset.pcanode.handle = handle
         self.dataset.pcanode.save(filename,protocol=1)
 
@@ -434,7 +433,7 @@ class MyModule:
         html_string += '<p><b>Black point:</b> (%.1f,%.1f,%.1f)</p>\n' % tuple(self.ptb.tolist())
         html_string += '<p><b>White point:</b> (%.1f,%.1f,%.1f)</p>\n' % tuple(self.ptw.tolist())
         html_string += '<p><b>Handle point:</b> (%.1f,%.1f,%.1f)</p>\n' % tuple(ptm.tolist())
-        html_string += '<p><b>Handle RGB col:</b> (%.1f,%.1f,%.1f)\n' % col
+        html_string += '<p><b>Handle RGB col:</b> (%.1f,%.1f,%.1f)\n' % tuple(col.tolist())
 
         html_string += '<h2>PCA Forward matrix:</h2>\n'
         mat = self.dataset.pcanode.get_projmatrix()
@@ -466,7 +465,7 @@ class MyModule:
             else:
                 label = labels[key]
 
-            if label.startswith("RGB") or "polygons" in label:
+            if label.startswith("RGB") or "polygons" in label or label == "menuitem":
                 continue
 
             html_string += '<p><b>%s:</b> %s</p>\n' % (label,str(values[key]))
@@ -482,7 +481,7 @@ class MyModule:
 
     def DoScreenshot(self,*args):
         arrayvar = self.Dialog.arrayvar
-        has_polygons = arrayvar["check_polygons"] == "on"
+        has_polygons = arrayvar["PCA_Figures_Include_Polygons"] == "on"
 
         file_path = tkFileDialog.asksaveasfilename(
                 defaultextension=".tif", filetypes = [ 
@@ -536,7 +535,7 @@ class MyModule:
 
     def DoScreenshot3d(self,*args):
         arrayvar = self.Dialog.arrayvar
-        has_polygons = arrayvar["check_noise"] == "on"
+        has_polygons = arrayvar["PCA_Figures_Include_Polygons"] == "on"
 
         file_path = tkFileDialog.asksaveasfilename(
                 defaultextension=".tif", filetypes = [ 
@@ -597,7 +596,7 @@ class MyModule:
     def InitPCA(self,handle=None):
         #These are independent of the interactor view.
         arrayvar = self.Dialog.arrayvar
-        is_unit = arrayvar["check_unit"] == "on"
+        is_unit = arrayvar["PCA_Matrix_Unit_transform"] == "on"
 
         maxval = self.dataset.maxval
         if is_unit:
@@ -617,7 +616,6 @@ class MyModule:
                 else:
                     handle = self.dataset.pcanode(np.array([handle]))[0]
 
-            print(">>>",handle)
             self.handle_3d = handle
 
         else:
@@ -683,21 +681,68 @@ class MyModule:
             ptm = [handle[c0],handle[c1]]
             self.interactor_c32.set_bw(ptb,ptw,ptm)
 
+            #This is to force the interactor to reacquire the background image
+            self.interactor_c12.background = None
+            self.interactor_c13.background = None
+            self.interactor_c32.background = None
+
+            #This is to change the handle colour
+            if is_unit:
+                col = np.array(handle,dtype='f')/np.max(handle)
+            else:
+                col = self.dataset.get_rgb_col(handle,dtype=float)
+            self.interactor_c12.set_handle_col(col)
+            self.interactor_c13.set_handle_col(col)
+            self.interactor_c32.set_handle_col(col)
+
     def Update(self, arrayvar, elementname):
         if elementname.startswith("channel_") or self.scat_12 is None:
             return
-
 
         low = arrayvar["check_black"] == "on"
         high = arrayvar["check_white"] == "on"
         show = arrayvar["check_masking"] == "on"
         tapered = arrayvar["check_tapered"] == "on"
-        is_unit = arrayvar["check_unit"] == "on"
+        is_unit = arrayvar["PCA_Matrix_Unit_transform"] == "on"
+
+        if elementname == "menuitem":
+            if arrayvar[elementname] == 'PCA Figures/Save Projections':
+                self.DoScreenshot()
+            elif arrayvar[elementname] == 'PCA Figures/Save 3D graph':
+                self.DoScreenshot3d()
+            elif arrayvar[elementname] == 'PCA Figures/Input Image':
+                self.DoInput()
+            elif arrayvar[elementname] == 'PCA Figures/Output Image':
+                self.DoOutput()
+            elif arrayvar[elementname] == 'PCA Matrix/Open File':
+                self.DoOpenPCA()
+            elif arrayvar[elementname] == 'PCA Matrix/Save File':
+                self.DoSavePCA()
+            elif arrayvar[elementname] == 'PCA Matrix/Recompute':
+                self.DoRecompute()
+            elif arrayvar[elementname] == 'PCA Matrix/Unit transform':
+                self.DoRecompute()
+            elif arrayvar[elementname] == 'PCA Matrix/Save HTML report':
+                self.DoReport()
+            elif arrayvar[elementname] == 'File/Open configuration':
+                self.interactor_c12.tapered = tapered
+                self.interactor_c13.tapered = tapered
+                self.interactor_c12.low = low
+                self.interactor_c12.high = high
+                self.interactor_c13.low = low
+                self.interactor_c13.high = high
+                if self.layout == TWOBYTWO:
+                    self.interactor_c32.tapered = tapered
+                    self.interactor_c32.low = low
+                    self.interactor_c32.high = high
+                handle = self.get_handle()
+                self.DoImport(newset=False,handle=handle)
+                fig = self.Dialog.figure
+                fig.canvas.draw()
+                return
 
         if elementname == "check_unit":
             handle = self.get_handle()
-            #if is_unit:
-            #    handle = self.dataset.get_rgb_col(handle,dtype=int)
             self.DoImport(newset=False,handle=handle)
             fig = self.Dialog.figure
             fig.canvas.draw()
@@ -794,7 +839,7 @@ class MyModule:
             self.dataset.plot_pca2d_dots(c0=c0,c1=c1,scat=self.scat_13,axs=self.ax2, unit=is_unit)
 
             #reinitialise with handle
-            self.InitPCA() #handle=handle_3d)
+            self.InitPCA()
 
             fig = self.Dialog.figure
             fig.canvas.draw()
@@ -888,11 +933,21 @@ class MyModule:
         if self.layout == TWOBYTWO:
             self.interactor_c32.set_parameters(w,bt,wt)
 
+        is_unit = self.Dialog.arrayvar["PCA_Matrix_Unit_transform"] == "on"
+        if is_unit:
+            col = self.handle_3d
+        else:
+            col = self.dataset.get_rgb_col(self.handle_3d,dtype=float)
+
+        self.interactor_c12.set_handle_col(col)
+        self.interactor_c13.set_handle_col(col)
+
         self.interactor_c12.redraw()
         self.interactor_c13.redraw()
         if self.layout == TWOBYTWO:
+            self.interactor_c32.set_handle_col(col)
             self.interactor_c32.redraw()
-        print "in do_release",self.handle_3d
+        print "in do_release",self.handle_3d, col
 
         xy = self.dataset.rgb_pca[:,self.sel0_comp]
         wh_12 = self.interactor_c12.is_inside(xy)

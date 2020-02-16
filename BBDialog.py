@@ -25,6 +25,7 @@ import ttk
 from TkDialog import TkDialog
 import tkFileDialog, tkMessageBox
 import ast
+import os
 
 list_graphs = ["C1 vs C2", "C1 vs C3", "C2 vs C3"]
 
@@ -51,6 +52,11 @@ class BBDialog(TkDialog):
 
         self.wm_geometry("700x800")
         self.title("Brainbow segmentation - Copyright (c) 2016 Egor Zindy")
+
+        self.add_menu("File",["Open configuration","Save configuration","|","Exit"])
+        self.add_menu("PCA Figures", ["Save Projections", "Save 3D graph", "Input Image", "Output Image", "|", "1_Include Polygons"])
+        self.add_menu("PCA Matrix", ["Open File", "Save File", "Recompute", "Save HTML report", "|", "1_Unit transform"])
+        self.add_menu("Help",["About"])
 
         self.ctrl_r = tk.Spinbox(self.mainframe, textvariable=self.arrayvar("channel_r"), from_=1, to=11)
         self.ctrl_g = tk.Spinbox(self.mainframe, textvariable=self.arrayvar("channel_g"), from_=1, to=11)
@@ -95,6 +101,7 @@ class BBDialog(TkDialog):
         tick = (self.arrayvar("check_tapered", "on"),"Tapered polygon")
         self.add_control("Region Width",widget,tick=tick,tooltip=tooltip)
 
+        """
         self.btn_input = ttk.Button(self.mainframe, text="Input Image", command=self.OnInput)
         self.btn_output = ttk.Button(self.mainframe, text="Output Image", command=self.OnOutput)
         self.btn_flat = ttk.Button(self.mainframe, text="Save projections", command=self.OnScreenshot)
@@ -111,6 +118,7 @@ class BBDialog(TkDialog):
         widget = [self.btn_openpca, self.btn_savepca, self.btn_recompute, self.btn_report]
         tick = (self.arrayvar("check_unit", "off"),"Unit transform")
         self.add_control("PCA Matrix",widget,tick=tick)
+        """
 
         self.btn_export = widget = ttk.Button(self.mainframe, text="Send to Imaris", command=self.OnExport)
         self.add_control(None,widget)
@@ -119,156 +127,52 @@ class BBDialog(TkDialog):
         self.bake(has_cancel=False) #, has_preview=True) #"Calculate")
         self.SetDefaults()
 
-    def OnImport(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoImport()
-
-    def DoImport(self,*args):
-        print "Import!"
-
-    def OnExport(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoExport()
-
-    def DoExport(self,*args):
-        print "Export!"
-
-    def OnOpenPCA(self,*args):
-        '''Print the contents of the array'''
-        self.file_opt['title'] = 'Open a PCA matrix'
-        print "asking for a filename..."
-        filename = tkFileDialog.askopenfilename(**self.file_opt)
-        print "doing the filename..."
-        if filename != "":
-            self.DoOpenPCA(filename)
-
-    def DoOpenPCA(self,*args):
-        print "OpenPCA!"
-
-    def OnSavePCA(self,*args):
-        '''Print the contents of the array'''
-        self.file_opt['title'] = 'Save the current PCA matrix'
-        filename = tkFileDialog.asksaveasfilename(**self.file_opt)
-        print filename
-        if filename != "":
-            self.DoSavePCA(filename)
-
-    def DoSavePCA(self,*args):
-        print "SavePCA!"
-
-    def OnRecompute(self, *args):
-        self.DoRecompute()
-
-    def DoRecompute(self, *args):
-        print "Recompute the PCA!"
-
-    def OnUnit(self,*args):
-        print "Unit PCA!"
-
-    def OnInput(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoInput()
-
-    def DoInput(self,*args):
-        print "Input!"
-
-    def OnOutput(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoOutput()
-
-    def DoOutput(self,*args):
-        print "Output!"
-
-    def OnReport(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoReport()
-
-    def DoReport(self,*args):
-        print "Report!"
-
-    def OnScreenshot(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoScreenshot()
-
-    def DoScreenshot(self,*args):
-        print "Screenshot!"
-
-    def OnScreenshot3d(self,*args):
-        '''Print the contents of the array'''
-        print self.arrayvar.get()
-        self.DoScreenshot3d()
-
-    def DoScreenshot3d(self,*args):
-        print "3D Screenshot!"
-
     def OnDump(self,*args):
         '''Print the contents of the array'''
         print self.arrayvar.get()
 
     def SetDefaults(self):
         #Here you set default values
-        self.arrayvar["scale_bt"] = 30
-        self.arrayvar["scale_wt"] = 20
-        self.arrayvar["scale_w"] = 25
-        self.arrayvar["channel_r"] = 1
-        self.arrayvar["channel_g"] = 2
-        self.arrayvar["channel_b"] = 3
-        #self.arrayvar["selection1"] = list_graphs[0]
-        #self.arrayvar["selection2"] = list_graphs[1]
+        self.arrayvar["fn_json"] = "bb.conf"
 
-        # define options for opening or saving a file
-        self.file_opt = options = {}
-        options['defaultextension'] = '.mat'
-        options['filetypes'] = [('all files', '.*'), ('matrix files', '.mat')]
-        #options['initialdir'] = 'C:\\'
-        options['initialfile'] = 'pca.mat'
-        options['parent'] = self
-        options['title'] = 'PCA matrix'
+        if os.path.exists(self.arrayvar["fn_json"]):
+            s = open(self.arrayvar["fn_json"]).read()
+            try:
+                self.arrayvar.set_json(s)
+            except:
+                tkMessageBox.showerror("Error", "Invalid configurationuration file")
+        else:
+            self.arrayvar["scale_bt"] = 30
+            self.arrayvar["scale_wt"] = 20
+            self.arrayvar["scale_w"] = 25
+            self.arrayvar["PCA_Matrix_Unit_transform"] = "off"
 
-    #This is specific to the dialog validation and update.
-    #Additionally, the Validate and Update methods are also called.
-    def _Validate(self, arrayvar, elementname):
-        pass
+            self.arrayvar["channel_r"] = 1
+            self.arrayvar["channel_g"] = 2
+            self.arrayvar["channel_b"] = 3
+            #self.arrayvar["selection1"] = list_graphs[0]
+            #self.arrayvar["selection2"] = list_graphs[1]
 
-    def _Update(self, arrayvar, elementname):
-        if arrayvar[elementname] == 'None':
-            return
+            # define options for opening or saving a file
+            self.file_opt = options = {}
+            options['defaultextension'] = '.mat'
+            options['filetypes'] = [('all files', '.*'), ('matrix files', '.mat')]
+            #options['initialdir'] = 'C:\\'
+            options['initialfile'] = 'pca.mat'
+            options['parent'] = self
+            options['title'] = 'PCA matrix'
 
-    def OnUpdateBars(self,*args):
-        self.DoBars()
+    def OnImport(self,*args):
+        self.DoImport()
 
-    def DoBars(self):
-        print "Updating bars!"
+    def DoImport(self):
+        print "Importing from Imaris!"
 
-    def OnUpdateSigmas(self,*args):
-        self.DoSigmas()
+    def OnExport(self,*args):
+        self.DoExport()
 
-    def DoSigmas(self):
-        print "Updating sigmas!"
-
-    def OnLoadSettings(self,*args):
-        self.LoadSettings()
-
-    def LoadSettings(self):
-        print "Loading some settings..."
-
-    def OnSaveSettings(self,*args):
-        self.SaveSettings()
-
-    def SaveSettings(self):
-        print "Saving some settings..."
-
-    def OnSaveFigure(self,*args):
-        self.SaveFigure()
-
-    def SaveFigure(self):
-        print "Saving the figure..."
+    def DoExport(self):
+        print "Exporting to Imaris!"
 
     def OnUpdateObjects(self,*args):
         self.UpdateObjects(update=True)

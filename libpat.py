@@ -43,8 +43,8 @@ class Analysis(object):
                 b = self.rgb_values[:,2].astype(np.uint16)
 
                 #Need at least 10 points in the grid location
-                t_truth = 10
-                self.sel_indexes = nativebb.dedupcol_indexes(r,g,b,self.nbit,6, t_truth)
+                t_truth = 3
+                self.sel_indexes = nativebb.dedupcol_indexes(r,g,b,self.nbit,7, t_truth)
                 print "    from %d to %d unique." % (n,self.sel_indexes.shape[0])
 
             else:
@@ -89,9 +89,10 @@ class Analysis(object):
         rgb_,wh = self.get_pixels(threshold=0,remove_bg=True)
         print "begin pcanode.train()..."
         self.pcanode.train(rgb_)
-        print "done!"
+        print "begin conversion..."
         self.rgb_pca = self.pcanode(rgb_)
         self.rgb_values = rgb_
+        print "done!"
 
     def normalise(self):
         if self.r is None:
@@ -168,10 +169,11 @@ class Analysis(object):
         plt.show()
 
 
-    def get_rgb_value(self,x,y):
+    def get_handle_from_pos(self,x,y):
         x = int(round(x))
         y = int(round(y))
         rgb = np.array([[self.r[y,x],self.g[y,x],self.b[y,x]]])
+        #print ">>> rgb",rgb
         rgb_pca = self.pcanode(rgb)[0]
         return rgb_pca
 
@@ -181,12 +183,15 @@ class Analysis(object):
         ma = np.max(v)
         if ma > 0:
             vv = (v/ma * 255.)
+            vv[vv < 0] = 0
+            vv[vv > 255] = 255
+
         r,g,b = vv.astype(np.uint8)
 
         if dtype == int:
             ret = [r, g, b]
         elif dtype == float:
-            return tuple(v.tolist())
+            return v #tuple(v.tolist())
         else:
             ret = "#%02x%02x%02x" % (r,g,b)
 
@@ -324,6 +329,7 @@ class Analysis(object):
             print "Component %d range: %f %f" % (i+1,np.min(rgb_pca[:,i]),np.max(rgb_pca[:,i]))
 
             n, bins, patches = axs[i].hist(rgb_pca[:,i], 50, normed=1, range=[np.min(rgb_pca[:,i]),np.max(rgb_pca[:,i])],facecolor='green', alpha=0.75)
+            #axs[i].set_title("PC%d" % (i+1));
             axs[i].set_title("Component %d" % (i+1));
         plt.show()
 
@@ -487,8 +493,8 @@ class Analysis(object):
         #self.plot_zero(axs,c0,c1)
         #self.plot_one(axs,c0,c1)
         if scat is None:
-            #scat = axs.scatter(x,y, s=50, marker='+',color=rgb_selection,alpha=alpha)
-            scat = axs.scatter(x,y, s=marker, marker='.', edgecolors=None, color=rgb_selection,alpha=alpha)
+            scat = axs.scatter(x,y, s=30, marker='+',color=rgb_selection,alpha=alpha)
+            #scat = axs.scatter(x,y, s=marker, marker='.', edgecolors=None, color=rgb_selection,alpha=alpha)
         else:
             scat.set_offsets( np.array(zip(x, y)))
             scat.set_color(rgb_selection)

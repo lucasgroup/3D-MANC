@@ -147,7 +147,11 @@ class ArrayElementVar(tk.StringVar):
         #self._master = master
         self._tk = master.tk
         self._name = "%s(%s)" % (varname, elementname)
-        self.set(self._default)
+        try:
+            self.set(self._default)
+        except Exception, e: 
+            print(e)
+            print(traceback.print_exc())
 
     def __del__(self):
         """Unset the variable in Tcl."""
@@ -722,7 +726,7 @@ class TkDialog(tk.Tk):
 
 
     def SaveConfig(self):
-        if self.arrayvar["fn_json"] == "":
+        if self.arrayvar["fn_json"] == "" or self.arrayvar["fn_json"] == None:
             d,f = "",""
         else:
             d,f = os.path.split(self.arrayvar["fn_json"])

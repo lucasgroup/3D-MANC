@@ -42,6 +42,7 @@ class LineInteractor:
         self.high = high
         self.tapered = tapered
         self.background = None
+        self.handle_colours = [[0,0,0],[.5,.5,.5],[1,1,1]]
 
         linedata = [pt_black, pt_mid, pt_white]
 
@@ -54,7 +55,9 @@ class LineInteractor:
 
         x, y = zip(*linedata)
 
-        self.line, = ax.plot(x,y, marker='s', markersize=10, markerfacecolor='r', animated=True)
+        self.line, = ax.plot(x,y, animated=True)
+        self.handles = ax.scatter(x,y, marker='s', color=self.handle_colours, edgecolors='k', animated=True)
+
         xr,yr = self.get_rect(x,y)
 
         
@@ -75,6 +78,13 @@ class LineInteractor:
         self.canvas = canvas
 
 
+    def set_handle_col(self,col):
+        col = col/np.max(col)
+        col[col < 0 ] = 0
+        col[col > 1 ] = 1
+        self.handle_colours[1] = col
+        self.handles.set_facecolors(self.handle_colours)
+
     #This is for the screenshot. given a new figure / ax, draw the polygon and line and points...
     def draw_things(self,axs):
         x,y = self.line.get_data()
@@ -94,11 +104,28 @@ class LineInteractor:
 
     def set_handle(self,pt_mid):
         x,y = self.line.get_data()
-        x[1] = pt_mid[0]
-        y[1] = pt_mid[1]
+        xmin,xmax = self.ax.get_xlim()
+        ymin,ymax = self.ax.get_ylim()
+        x_ = pt_mid[0]
+        if x_ < xmin:
+            x_ = xmin
+        elif x_ > xmax:
+            x_ = xmax
+
+        y_ = pt_mid[1]
+        if y_ < ymin:
+            y_ = ymin
+        elif y_ > ymax:
+            y_ = ymax
+
+        x[1] = x_
+        y[1] = y_
+
         xr,yr = self.get_rect(x,y)
         self.poly.set_xy( list(zip(xr, yr)))
         self.line.set_data(x, y)
+        self.handles.set_offsets(np.c_[x,y])
+        self.handles.set_facecolors(self.handle_colours)
 
     def get_handle(self):
         x,y = self.line.get_data()
@@ -113,6 +140,8 @@ class LineInteractor:
         xr,yr = self.get_rect(x,y)
         self.poly.set_xy( list(zip(xr, yr)))
         self.line.set_data(x, y)
+        self.handles.set_offsets(np.c_[x,y])
+        self.handles.set_facecolors(self.handle_colours)
 
     def distance(self,pt1,pt2):
         x1,y1 = pt1
@@ -281,6 +310,7 @@ class LineInteractor:
 
         self.ax.draw_artist(self.poly)
         self.ax.draw_artist(self.line)
+        self.ax.draw_artist(self.handles)
         self.canvas.blit(self.ax.bbox)
         
     def key_press_callback(self, event):
@@ -357,21 +387,27 @@ class LineInteractor:
         self.poly.set_xy( list(zip(xr, yr)))
 
         self.line.set_data(x, y)
+        self.handles.set_offsets(np.c_[x,y])
+        self.handles.set_facecolors(self.handle_colours)
         x,y = self.line.get_data()
 
         #print x[self._ind], y[self._ind], '==',
         self.canvas.restore_region(self.background)
         self.ax.draw_artist(self.poly)
         self.ax.draw_artist(self.line)
+        self.ax.draw_artist(self.handles)
         self.canvas.blit(self.ax.bbox)
         x,y = self.line.get_data()
         #print x[self._ind], y[self._ind]
 
     def redraw(self,show=True):
+        if self.background is None:
+            return
         self.canvas.restore_region(self.background)
         if show:
             self.ax.draw_artist(self.poly)
             self.ax.draw_artist(self.line)
+            self.ax.draw_artist(self.handles)
         self.canvas.blit(self.ax.bbox)
 
     def is_inside(self,pts):

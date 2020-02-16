@@ -16,12 +16,14 @@
 #
 # vim: set ts=4 sts=4 sw=4 expandtab smartindent:
 
+from __future__ import print_function
 import numpy as np
 import ImarisLib
 import Ice
 import sys
 import time
 import zlib
+import datetime as dt
 
 #make tType available
 _M_Imaris = Ice.openModule('Imaris')
@@ -29,15 +31,12 @@ tType = _M_Imaris.tType
 
 imaris_types = {'eTypeUInt8':np.uint8,'eTypeUInt16':np.uint16,'eTypeFloat':np.float32}
 
-#print sys.argv[0]
-#sys.path.insert(0,'')
-
 DEBUG = False
 
 ###########################################################################
 ## Helper functions
 ###########################################################################
-def Reconnect(newId):
+def Reconnect(newId=None):
     """Given an ImarisId, Get the associated Application and DataSet instances
 
     Useful inside an interactive sesssion.
@@ -45,18 +44,39 @@ def Reconnect(newId):
     vImarisLib = ImarisLib.ImarisLib()
     vServer = vImarisLib.GetServer()
     vImaris,vDataSet = None,None
+    nObjects = vServer.GetNumberOfObjects()
 
-    for vIndex in range(vServer.GetNumberOfObjects()):
+    if DEBUG:
+        print("Found %d running Imaris instances: "%nObjects, end='')
+        for vIndex in range(nObjects):
+            vId = vServer.GetObjectID(vIndex)
+            print(vId, end='')
+        print()
+
+    for vIndex in range(nObjects):
         vId = vServer.GetObjectID(vIndex)
-        if vId == newId:
+        if vId == newId or newId is None:
             vApp = vImarisLib.GetApplication(vId)
-            vImaris = vImarisLib.GetApplication(newId)
+            vImaris = vImarisLib.GetApplication(vId)
             vDataSet = vImaris.GetDataSet()
             if vDataSet is None:
                 print("Warning! No Dataset.")
             break
 
     return vImaris,vDataSet
+
+def Cleanup(vImaris):
+    vScene = vImaris.GetSurpassScene()
+
+    nChildren = vScene.GetNumberOfChildren()
+    for i in range(nChildren):
+        child = vScene.GetChild(i)
+        if child is not None:
+            print(i,child)
+            vScene.RemoveChild(child)
+
+    vDataSet = vImaris.GetDataSet()
+    vDataSet.Dispose()
 
 def GetType(vDataSet):
     """Get the numpy dtype of the dataset"""
@@ -108,15 +128,23 @@ def GetTimepoint(vDataSet, tpi):
     pattern = '%Y-%m-%d %H:%M:%S.%f'
     return int(time.mktime(time.strptime(dt,pattern)))+float("0."+dt.split(".")[1])
 
-def GetTimepoints(vDataSet,tpis):
+def GetTimepoints(vDataSet,tpis=None,datetime=False):
     """Given a list of timepoint indexes, return the timepoints"""
 
     t0 = GetTimepoint(vDataSet,0)
-    nt = len(tpis)
-    ret = np.zeros(nt)
 
+    if tpis is None:
+        nt = vDataSet.GetSizeT()
+        tpis = range(nt)
+    else:
+        nt = len(tpis)
+
+    ret = []
     for i in range(nt):
-        ret[i] = GetTimepoint(vDataSet,tpis[i])-t0
+        ts = GetTimepoint(vDataSet,tpis[i])-t0
+        if datetime:
+            ts = dt.datetime.fromtimestamp(ts)
+        ret.append(ts)
 
     return ret
 
@@ -268,7 +296,7 @@ def SetDataVolume(vDataSet,arr,aIndexC,aIndexT):
             t  = time.time()
             l = arr[z,...].swapaxes(0,1).tostring()
             SetData(l,0,0,z,aIndexC,aIndexT,nx,ny,1)
-            print z,time.time()-t
+            print(z,time.time()-t)
 
     #vDataSet.SetChannelRange(aIndexC,miset,maset)
 
@@ -371,7 +399,135 @@ def GetSurpassObjects(vImaris,search="spots"):
 
     return ret
 
-def GetStatisticsNames(vImaris,vDataItem):
+def GetItemIds(vDataItem,tid):
+    """Return the spot ids for a particular vDataItem object track id
+    """
+    track_ids = np.array(vDataItem.GetTrackIds())
+    le = np.array(vDataItem.GetTrackEdges())
+    wh = (track_ids == tid)
+    idx = le[wh,:]
+    idx = np.append(idx[:,0],idx[-1,1])
+    return idx
+
+def GetItemTrackIds(vDataItem,onlySelected=False):
+    if onlySelected:
+        sid = np.array(vDataItem.GetSelectedIds())
+        tid = sid[sid >= 1000000000]
+    else:
+        tid = np.array(vDataItem.GetTrackIds())
+        tid = np.unique(tid)
+
+    return tid
+
+def GetItemXYZT(vImaris,vDataItem,physdim=True):
+    names = ['x','y','z','t']
+    formats = ['f','f','f','f']
+    dat_types = {
+        'names': names,
+        'formats': formats
+    }
+
+    if isSpot(vImaris,vDataItem):
+        p = np.array(vDataItem.GetPositionsXYZ())
+        pe = np.array(vDataItem.GetTrackEdges())
+        tid = np.array(vDataItem.GetTrackIds())
+        tpid = np.array(vDataItem.GetIndicesT())
+    else:
+        pe = np.array(vDataItem.GetTrackEdges())
+        tid = np.array(vDataItem.GetTrackIds())
+        n = vDataItem.GetNumberOfSurfaces()
+        p = np.zeros((n,3),float)
+        tpid = np.zeros(n,int)
+
+        for j in range(n):
+            p[j,:] = vDataItem.GetCenterOfMass(j)[0]
+            tpid[j] = vSpot.GetTimeIndex(j)
+
+    n = tpid.shape[0]
+
+    #Create the array
+    arr = np.zeros((n,),dtype=dat_types)
+    arr['x'] = p[:,0]
+    arr['y'] = p[:,1]
+    arr['z'] = p[:,2]
+    arr['t'] = tpid
+
+    vDataSet = vImaris.GetDataSet()
+    if physdim == True and vDataSet is not None:
+        xsize,ysize,zsize = GetVoxelSize(vDataSet)
+        tps_ = GetTimepoints(vDataSet)
+
+        arr['x']*=xsize
+        arr['y']*=ysize
+        arr['z']*=zsize
+        arr['t']=np.take(tps_,tpid)
+
+    return arr
+
+
+def GetStatistics(vDataSet, vDataItem,mFactor=None,channel=None,vStatisticValues=None):
+    # Build the stats structured array for vDataItem
+
+    tps = np.array(GetTimepoints(vDataSet))
+    
+    if type(vDataItem) == ImarisLib.Imaris.cStatisticValues:
+        vStatisticValues = vDataItem
+    else:
+        vStatisticValues = vDataItem.GetStatistics()
+
+    facnames = vStatisticValues.mFactorNames
+    names = ['Factor', 'Id', 'TrackId'] + facnames + ['Elapsed','Value']
+    formats = ['a30','i','i']+['a30']*len(facnames)+['f','f']
+    formats[-3] = 'i' #Time
+    dat_types = {
+        'names': names,
+        'formats': formats
+    }
+
+    lNames = np.array(vStatisticValues.mNames)
+    lIds = np.array(vStatisticValues.mIds)
+    lValues = np.array(vStatisticValues.mValues)
+    if mFactor is not None:
+        wh = lNames == mFactor
+        lNames = lNames[wh]
+        lIds = lIds[wh]
+        lValues = lValues[wh]
+
+    stats = np.zeros((lNames.shape[0],),dtype=dat_types)
+
+    stats['Factor']=lNames
+    stats['Id']=lIds
+    stats['Value']=lValues
+
+    for i in range(len(vStatisticValues.mFactorNames)):
+        fac = np.array(vStatisticValues.mFactors[i])
+        if mFactor is not None:
+            fac = fac[wh]
+
+        #Time can normally be converted to an integer but for track data, time is ""
+        if vStatisticValues.mFactorNames[i] == "Time" and fac[0] == '':
+            continue
+
+        stats[vStatisticValues.mFactorNames[i]] = fac
+
+    if channel is not None:
+        wh = stats["Channel"] == str(channel+1)
+        stats = stats[wh]
+
+    #Time really needs to be zero-indexed
+    stats['Time'] -= 1
+    stats['Elapsed'] = np.take(tps,stats['Time'])
+
+    #Adding the track ids... FIXME Not sure how to do this for now, leave it
+    stats['TrackId'] = -1
+    if 0:
+        track_ids = GetItemTrackIds(vDataItem)
+        for tid in track_ids:
+            stats['TrackId'][GetItemIds(vDataItem,tid)] = tid
+
+    return stats
+
+def GetStatisticsNames(vDataItem):
     vStatisticValues = vDataItem.GetStatistics()
     names = vs.mNames
 
