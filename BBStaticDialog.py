@@ -20,6 +20,7 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
 
+from __future__ import print_function
 import Tkinter as tk
 import ttk
 from TkDialog import TkDialog
@@ -31,8 +32,8 @@ list_graphs = ["C1 vs C2", "C1 vs C3", "C2 vs C3"]
 default_cols = " (0.5, 0.5, 0.5, 1.0), (0.3,1,1,.9), (0.5, 0.0, 0.5, 0.6), (1.0, 0.5, 0.2, 0.6)"
 #default_sigmas = "10, 10, 10"
 default_sigmas = "2,2,2"
-print type(ast.literal_eval("["+default_cols+"]"))
-print type(ast.literal_eval("["+default_sigmas+"]"))
+print(type(ast.literal_eval("["+default_cols+"]")))
+print(type(ast.literal_eval("["+default_sigmas+"]")))
 
 try:
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -137,7 +138,7 @@ class BBDialog(TkDialog):
 
     def OnDump(self,*args):
         '''Print the contents of the array'''
-        print self.arrayvar.get()
+        print(self.arrayvar.get())
 
     def SetDefaults(self):
         #Here you set default values
@@ -168,19 +169,19 @@ class BBDialog(TkDialog):
         self.DoBars()
 
     def DoBars(self):
-        print "Updating bars!"
+        print("Updating bars!")
 
     def OnUpdateSigmas(self,*args):
         self.DoSigmas()
 
     def DoSigmas(self):
-        print "Updating sigmas!"
+        print("Updating sigmas!")
 
     def OnUpdateObjects(self,*args):
         self.UpdateObjects(update=True)
 
     def UpdateObjects(self, *args, **kwargs):
-        print "Updating the objects..."
+        print("Updating the objects...")
 
 if __name__ == "__main__":
     app=BBDialog()

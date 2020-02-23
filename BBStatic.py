@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import matplotlib as mpl
 mpl.use('TkAgg')
 from mpl_toolkits.mplot3d import Axes3D
@@ -44,7 +46,7 @@ def onHotswap():
     """
     t = time.localtime(time.time())
     st = time.strftime("Hotswap: %Y-%m-%d %H:%M:%S", t)
-    print st
+    print(st)
 
 ###########################################################################
 ## Main application module
@@ -162,13 +164,13 @@ class MyModule:
         canvas.mpl_connect('button_press_event', self.button_press_callback)
         canvas.mpl_connect('button_release_event', self.button_release_callback)
         canvas.mpl_connect('motion_notify_event', self.motion_notify_callback)
-        print "interactor done!"
+        print("interactor done!")
 
     def button_press_callback(self, event):
         if not event.inaxes: return
 
         if event.dblclick:
-            print event.button
+            print(event.button)
         if event.inaxes == self.ax4:
             if event.button == 3:
                 self.dataset.display_rgb(im=self.im, axs=self.ax4) #
@@ -176,7 +178,7 @@ class MyModule:
                 fig = self.Dialog.figure
                 fig.canvas.blit(self.ax4.bbox)
             elif event.button == 1:
-                print "left clicked image!"
+                print("left clicked image!")
                 self.clicked_image = True
 
     def button_release_callback(self, event):
@@ -193,7 +195,7 @@ class MyModule:
             fig.canvas.draw()
 
             #self.handle3d = 
-            #print c1,c2,c3
+            #print(c1,c2,c3)
             #self.interactor_c12.set_handle((c1,c2))
             #self.interactor_c13.set_handle((c1,c3))
             #self.interactor_c32.set_handle((c3,c2))
@@ -223,7 +225,7 @@ class MyModule:
                 start = text.index("sel.first")
                 end = text.index("sel.last")
                 text.delete(start, end)
-            except TclError, e:
+            except TclError as e:
                 # nothing was selected, so paste doesn't need
                 # to delete anything
                 pass
@@ -282,17 +284,17 @@ class MyModule:
                 else:
                     sigmas = int(arrayvar["bars_sigma"])
 
-                print "adding some noise..."
+                print("adding some noise...")
                 self.dataset.add_gaussian(sigmas)
 
-        print "doing the pca!"
+        print("doing the pca!")
         threshold = 0
         if pca is True:
             self.dataset.init_pca()
 
         self.Dialog.config(cursor="")
 
-        print "plotting some crosses..."
+        print("plotting some crosses...")
         self.dataset.do_pca2d(threshold,unit=is_unit)
         self.dataset.set_ssize(self.ssize)
 
@@ -370,7 +372,7 @@ class MyModule:
         pcanode = cPickle.load(f)
         self.dataset.pcanode = pcanode
         if hasattr(pcanode,"handle"):
-            print "found a handle!",pcanode.handle
+            print("found a handle!",pcanode.handle)
             handle = pcanode(np.array([pcanode.handle]))[0]
         else:
             handle = self.get_handle()
@@ -457,8 +459,8 @@ class MyModule:
             html_string = html_string+"%.2f</p>\n" % avg[ci]
 
         html_string += '<h2>Other values:</h2>\n'
-        #print labels.keys()
-        #print values.keys()
+        #print(labels.keys())
+        #print(values.keys())
         for key in keys:
             if key not in labels.keys() or labels[key] is None or labels[key] == '':
                 label = key
@@ -513,7 +515,7 @@ class MyModule:
 
         im = self.dataset.display_rgb(axs=ax4)
 
-        print "done!"
+        print("done!")
 
         #use self.interactor_c12 to populate the new ax1...
         if has_polygons:
@@ -522,14 +524,14 @@ class MyModule:
             self.interactor_c32.draw_things(ax3)
 
         #Then display the image in the second graph
-        print "generating the image..."
+        print("generating the image...")
         rgb_uint8 = self.dataset.get_rgb_image(wh=self.selection)
         ax4.imshow(rgb_uint8)
-        print "done!"
+        print("done!")
 
-        print "saving the figure..."
+        print("saving the figure...")
         fig.savefig(file_path, bbox_inches='tight')
-        print "done!"
+        print("done!")
 
         self.Dialog.config(cursor="")
 
@@ -555,17 +557,17 @@ class MyModule:
         ax1 = fig.add_subplot(1, 1, 1, projection='3d')
 
         #Then add the two graphs...
-        print "Generating the complete scatter plot..."
+        print("Generating the complete scatter plot...")
         scat = self.dataset.plot_pca3d_dots(axs=ax1,fullset=True)
 
         if has_polygons:
             self.display_3dline(ax1)
 
-        print "done!"
+        print("done!")
 
-        print "saving the figure..."
+        print("saving the figure...")
         fig.savefig(file_path, bbox_inches='tight')
-        print "done!"
+        print("done!")
 
         self.Dialog.config(cursor="")
 
@@ -873,14 +875,14 @@ class MyModule:
 
     #Here we can add a channel...
     def AddChannel(self,data,name,col=[255,255,255], add_filter=True,threshold=100):
-        print "Nothing to do in demo mode"
+        print("Nothing to do in demo mode")
     def do_press(self):
         pass
 
     def do_release_12(self,evt=None):
         handle_3d = self.get_handle(update_from=0)
         c0,c1 = self.sel1_comp
-        print "released 12",c0,c1
+        print("released 12",c0,c1)
         value_c0 = handle_3d[c0]
         value_c1 = handle_3d[c1]
         self.interactor_c13.set_handle((value_c0,value_c1))
@@ -894,7 +896,7 @@ class MyModule:
     def do_release_13(self,evt=None):
         handle_3d = self.get_handle(update_from=1)
         c0,c1 = self.sel0_comp
-        print c0,c1
+        print(c0,c1)
         value_c0 = handle_3d[c0]
         value_c1 = handle_3d[c1]
         self.interactor_c12.set_handle((value_c0,value_c1))
@@ -947,7 +949,7 @@ class MyModule:
         if self.layout == TWOBYTWO:
             self.interactor_c32.set_handle_col(col)
             self.interactor_c32.redraw()
-        print "in do_release",self.handle_3d, col
+        print("in do_release",self.handle_3d, col)
 
         xy = self.dataset.rgb_pca[:,self.sel0_comp]
         wh_12 = self.interactor_c12.is_inside(xy)
@@ -969,11 +971,11 @@ class MyModule:
         bg_4 = fig.canvas.copy_from_bbox(self.ax4.bbox)
 
         #left
-        print "updating..."
+        print("updating...")
         self.dataset.display_rgb(wh=selection,im=self.im) #axs=self.ax3) #
         self.ax4.draw_artist(self.im)
         fig.canvas.blit(self.ax4.bbox)
-        print "done updating!"
+        print("done updating!")
         #col = self.dataset.get_rgb_col(wh=selection)
 
         #col = self.dataset.get_rgb_col(self.handle_3d) #wh=selection)

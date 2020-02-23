@@ -26,6 +26,7 @@
 #
 # vim: set ts=4 sts=4 sw=4 expandtab smartindent:
 
+from __future__ import print_function
 import Tkinter as tk
 import ttk
 import tkMessageBox
@@ -149,7 +150,7 @@ class ArrayElementVar(tk.StringVar):
         self._name = "%s(%s)" % (varname, elementname)
         try:
             self.set(self._default)
-        except Exception, e: 
+        except Exception as e: 
             print(e)
             print(traceback.print_exc())
 
@@ -639,7 +640,7 @@ class TkDialog(tk.Tk):
             self.Validate(self.arrayvar,elementname)
             self._Update(self.arrayvar,elementname)
             self.Update(self.arrayvar,elementname)
-        except Exception, e: 
+        except Exception as e: 
             print(e)
             print(traceback.print_exc())
 

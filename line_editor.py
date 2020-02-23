@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 import matplotlib as mpl
 mpl.use('TkAgg')
@@ -17,7 +19,7 @@ def onHotswap():
     import time
     t = time.localtime(time.time())
     st = time.strftime("Hotswap: %Y-%m-%d %H:%M:%S", t)
-    print st
+    print(st)
 
 
 
@@ -190,7 +192,7 @@ class LineInteractor:
             px1 = 0.5 * self.thickness * (1.-t1) * dy #perpendicular vector with lenght thickness * 0.5
             py1 = 0.5 * self.thickness * (1.-t1) * dx
 
-            #print px0,py0,px1,py1
+            #print(px0,py0,px1,py1)
 
             xs = [x0-px0,x1-px1,x1+px1,x0+px0]
             ys = [y0+py0,y1+py1,y1-py1,y0-py0]
@@ -224,7 +226,7 @@ class LineInteractor:
         px1 = 0.5 * self.thickness * dy #perpendicular vector with lenght thickness * 0.5
         py1 = 0.5 * self.thickness * dx
 
-        #print px0,py0,px1,py1
+        #print(px0,py0,px1,py1)
 
         xs1 = [x0-px0,x1-px1,x1+px1,x0+px0]
         ys1 = [y0+py0,y1+py1,y1-py1,y0-py0]
@@ -300,11 +302,11 @@ class LineInteractor:
         return xs,ys
 
     def resize_callback(self,event):
-        print "resizing..."
+        print("resizing...")
         self.background = None
 
     def draw_callback(self, event):
-        print "Storing background..."
+        print("Storing background...")
         if self.background is None:
             self.background = self.canvas.copy_from_bbox(self.ax.bbox)
 
@@ -327,7 +329,7 @@ class LineInteractor:
         'get the index of the vertex under point if within epsilon tolerance'
 
         # display coords
-        #print ">>>>",self.line.get_data()
+        #print(">>>>",self.line.get_data())
         xy = np.asarray(zip(*self.line.get_data()) )
         xyt = self.line.get_transform().transform(xy)
         xt, yt = xyt[:, 0], xyt[:, 1]
@@ -380,7 +382,7 @@ class LineInteractor:
         if event.inaxes is None: return
         if event.button != 1: return
         x,y = self.line.get_data()
-        #print x[self._ind], y[self._ind], '!=',
+        #print(x[self._ind], y[self._ind], '!=',)
         x[self._ind] = event.xdata
         y[self._ind] = event.ydata
         xr,yr = self.get_rect(x,y)
@@ -391,14 +393,14 @@ class LineInteractor:
         self.handles.set_facecolors(self.handle_colours)
         x,y = self.line.get_data()
 
-        #print x[self._ind], y[self._ind], '==',
+        #print(x[self._ind], y[self._ind], '==',)
         self.canvas.restore_region(self.background)
         self.ax.draw_artist(self.poly)
         self.ax.draw_artist(self.line)
         self.ax.draw_artist(self.handles)
         self.canvas.blit(self.ax.bbox)
         x,y = self.line.get_data()
-        #print x[self._ind], y[self._ind]
+        #print(x[self._ind], y[self._ind])
 
     def redraw(self,show=True):
         if self.background is None:
@@ -423,13 +425,13 @@ class LineInteractor:
         return np.array(self.poly.get_xy(),np.float32)
 
     def do_press(self):
-        print "pressed!"
+        print("pressed!")
 
     def do_release(self):
         #x,y = self.line.get_data()
-        #print x
-        #print y
-        print "released!"
+        #print(x)
+        #print(y)
+        print("released!")
 
 def main(argv=None):
     if argv is None:

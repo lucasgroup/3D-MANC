@@ -28,6 +28,7 @@
 # limitations under the License.
 #
 # vim: set ts=4 sts=4 sw=4 expandtab smartindent:
+from __future__ import print_function
 import ImarisLib
 import BridgeLib
 
@@ -46,9 +47,9 @@ class Module:
         self.vImaris = vImaris
 
         #Use a clone
-        print "Making a clone..."
+        print("Making a clone...")
         self.vDataSet = vImaris.GetDataSet().Clone()
-        print "  done!"
+        print("  done!")
 
         #Setting the grid resolution
         nx = self.vDataSet.GetSizeX()
@@ -74,11 +75,11 @@ class Module:
         nz = self.vDataSet.GetSizeZ()
         miset,maset = BridgeLib.GetRange(self.vDataSet)
 
-        print "Fetching channel data (%dx%dx%d)..." % (nx,ny,nz)
+        print("Fetching channel data (%dx%dx%d)..." % (nx,ny,nz))
         if self.data is None:
             data = []
             for i in range(3):
-                print "  channel %d/%d" % (i+1,3)
+                print("  channel %d/%d" % (i+1,3))
                 if nz == 1:
                     d = BridgeLib.GetDataSlice(self.vDataSet,0,i,0).astype(np.float32)
                 else:
@@ -86,7 +87,7 @@ class Module:
                 data.append(d)
             self.data = data
         else:
-            print "Using cached data..."
+            print("Using cached data...")
 
         if interactive:
             threshold = BridgeLib.query_num("The Threshold in percent (max channels=%d)"%maset,threshold,[0,100])
@@ -103,9 +104,9 @@ class Module:
 
         kernel = libatrous.get_kernel(filter_type)
 
-        print "Filtering the channels using low_scale=%d high_scale=%d, filter=%d, add_lowpass=%d" % (low_scale,high_scale,filter_type,add_lowpass)
+        print("Filtering the channels using low_scale=%d high_scale=%d, filter=%d, add_lowpass=%d" % (low_scale,high_scale,filter_type,add_lowpass))
         for i in range(3):
-            print "  channel %d/%d" % (i+1,3)
+            print("  channel %d/%d" % (i+1,3))
             d = self.data[i].astype(np.float32)
             d = libatrous.get_bandpass(d,low_scale-1,high_scale-1,kernel,add_lowpass)
 
@@ -127,11 +128,11 @@ class Module:
         for i in range(3):
             #save new channel
             d = rgb[:,i].reshape(sum_array.shape)
-            #print d.dtype,d.shape,np.min(d),np.max(d)
+            #print(d.dtype,d.shape,np.min(d),np.max(d))
 
             name = self.vDataSet.GetChannelName(i)+" (clean)"
             color = BridgeLib.GetChannelColorRGBA(self.vDataSet,i)
-            print "Updating '%s', color=" % name,color
+            print("Updating '%s', color=" % name,color)
             channel_out = BridgeLib.FindChannel(self.vDataSet,name,create=True,color=color)
             BridgeLib.SetDataVolume(self.vDataSet,d,channel_out,self.vImaris.GetVisibleIndexT())
             ret.append(d)
@@ -170,12 +171,12 @@ def XTSetup(aImarisId):
 
     # Check if the object is valid
     if vImaris is None:
-        print "Could not connect to Imaris!"
+        print("Could not connect to Imaris!")
         exit(1)
 
     vDataSet = vImaris.GetDataSet()
     if vDataSet is None:
-        print "No data available!"
+        print("No data available!")
         exit(1)
 
     MM = Module(vImaris)

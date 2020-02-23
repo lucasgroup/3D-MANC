@@ -28,6 +28,7 @@
 #
 # vim: set ts=4 sts=4 sw=4 expandtab smartindent:
 
+from __future__ import print_function
 import matplotlib as mpl
 mpl.use('TkAgg')
 from mpl_toolkits.mplot3d import Axes3D
@@ -74,7 +75,7 @@ def onHotswap():
     """
     t = time.localtime(time.time())
     st = time.strftime("Hotswap: %Y-%m-%d %H:%M:%S", t)
-    print st
+    print(st)
 
 ###########################################################################
 ## Main application module
@@ -84,10 +85,10 @@ class MyModule:
         self.vImaris = vImaris
 
         #Use a clone
-        print "Making a clone..."
+        print("Making a clone...")
         #self.vDataSet = vImaris.GetDataSet()
         self.vDataSet = vImaris.GetDataSet().Clone()
-        print "  done!"
+        print("  done!")
 
         self.interactor_c12 = None
         self.interactor_c13 = None
@@ -200,7 +201,7 @@ class MyModule:
 
         maxval = 0
         for i in [cr,cg,cb]:
-            print "Importing channel %d" % (i+1)
+            print("Importing channel %d" % (i+1))
             if nz == 1:
                 d = BridgeLib.GetDataSlice(self.vDataSet,0,i,0) #.astype(np.float32)
             else:
@@ -213,19 +214,19 @@ class MyModule:
         self.nbit = int(np.ceil(np.log2(maxval)))
         self.maxval = pow(2,self.nbit)-1
 
-        print "Using %d as maxval (maxval dataset = %d)" % (maxval,self.maxval)
+        print("Using %d as maxval (maxval dataset = %d)" % (maxval,self.maxval))
 
         self.dataset = libpat.Image(self.nbit)
         self.dataset.set_data(rgb)
 
-        print "doing the pca!"
+        print("doing the pca!")
         threshold = 0
         if pca is True:
             self.dataset.init_pca()
 
         self.Dialog.config(cursor="")
 
-        print "plotting some crosses..."
+        print("plotting some crosses...")
         self.dataset.do_pca2d(threshold,unit=is_unit)
         self.dataset.set_ssize(self.ssize)
 
@@ -308,7 +309,7 @@ class MyModule:
 
         if hasattr(pcanode,"handle"):
             self.handle_3d = pcanode.handle
-            #print "found a handle!",pcanode.handle
+            #print("found a handle!",pcanode.handle)
             #handle = pcanode(np.array([pcanode.handle]))[0]
             value_c0 = self.handle_3d[0]
             value_c1 = self.handle_3d[1]
@@ -331,12 +332,12 @@ class MyModule:
         if filename == "":
             return
 
-        print "saving...",filename
+        print("saving...",filename)
         arrayvar = self.Dialog.arrayvar
         gui_values = arrayvar.get()
         handle = self.get_handle()
         #handle = self.dataset.get_rgb_col(self.get_handle(),dtype=int)
-        print ">>>>",handle
+        print(">>>>",handle)
         self.dataset.pcanode.handle = handle
         self.dataset.pcanode.gui_values = gui_values
         self.dataset.pcanode.save(filename,protocol=1)
@@ -409,8 +410,8 @@ class MyModule:
             html_string = html_string+"%.2f</p>\n" % avg[ci]
 
         html_string += '<h2>Other values:</h2>\n'
-        #print labels.keys()
-        #print values.keys()
+        #print(labels.keys())
+        #print(values.keys())
         for key in keys:
             if key not in labels.keys() or labels[key] is None or labels[key] == '':
                 label = key
@@ -465,7 +466,7 @@ class MyModule:
 
         im = self.dataset.display_rgb(axs=ax4)
 
-        print "done!"
+        print("done!")
 
         #use self.interactor_c12 to populate the new ax1...
         if has_polygons:
@@ -474,14 +475,14 @@ class MyModule:
             self.interactor_c32.draw_things(ax3)
 
         #Then display the image in the second graph
-        print "generating the image..."
+        print("generating the image...")
         rgb_uint8 = self.im.get_array()
         ax4.imshow(rgb_uint8)
-        print "done!"
+        print("done!")
 
-        print "saving the figure..."
+        print("saving the figure...")
         fig.savefig(file_path, bbox_inches='tight')
-        print "done!"
+        print("done!")
 
         self.Dialog.config(cursor="")
 
@@ -507,17 +508,17 @@ class MyModule:
         ax1 = fig.add_subplot(1, 1, 1, projection='3d')
 
         #Then add the two graphs...
-        print "Generating the complete scatter plot..."
+        print("Generating the complete scatter plot...")
         scat = self.dataset.plot_pca3d_dots(axs=ax1,fullset=True)
 
         if has_polygons:
             self.display_3dline(ax1)
 
-        print "done!"
+        print("done!")
 
-        print "saving the figure..."
+        print("saving the figure...")
         fig.savefig(file_path, bbox_inches='tight')
-        print "done!"
+        print("done!")
 
         self.Dialog.config(cursor="")
 
@@ -551,7 +552,7 @@ class MyModule:
         is_unit = arrayvar["PCA_Matrix_Unit_transform"] == "on"
 
         maxval = self.maxval
-        print ">>>Using %d as maxval" % maxval
+        print(">>>Using %d as maxval" % maxval)
         if is_unit:
             self.ptb = np.zeros(3)
             self.ptw = np.ones(3)*maxval
@@ -648,7 +649,7 @@ class MyModule:
             self.interactor_c13.set_handle_col(col)
             self.interactor_c32.set_handle_col(col)
 
-        print "here?"
+        print("here?")
         self.do_release()
         #fig = self.Dialog.figure
         #fig.canvas.draw()
@@ -839,14 +840,14 @@ class MyModule:
 
     #Here we can add a channel...
     def AddChannel(self,data,name,col=[255,255,255], add_filter=True,threshold=100):
-        print "using colour",col
+        print("using colour",col)
 
         nc = self.vDataSet.GetSizeC()
         nz = self.vDataSet.GetSizeZ()
         nt = self.vDataSet.GetSizeT()
 
         if add_filter:
-            print "filering..."
+            print("filering...")
             #The filament
             filter_type=5
             low_scale = 2
@@ -864,7 +865,7 @@ class MyModule:
         channel_out = BridgeLib.FindChannel(self.vDataSet,None,create=True,color=col)
         self.vDataSet.SetChannelName(channel_out,name)
 
-        if DEBUG: print "Adding %s" % name,channel_out
+        if DEBUG: print("Adding %s" % name,channel_out)
 
         if data.ndim == 2:
             BridgeLib.SetDataSlice(self.vDataSet,d,0,channel_out,tp)
@@ -880,7 +881,7 @@ class MyModule:
     def do_release_12(self,evt=None):
         handle_3d = self.get_handle(update_from=0)
         c0,c1 = self.sel1_comp
-        #print "released 12",c0,c1
+        #print("released 12",c0,c1)
         value_c0 = handle_3d[c0]
         value_c1 = handle_3d[c1]
         self.interactor_c13.set_handle((value_c0,value_c1))
@@ -894,7 +895,7 @@ class MyModule:
     def do_release_13(self,evt=None):
         handle_3d = self.get_handle(update_from=1)
         c0,c1 = self.sel0_comp
-        #print c0,c1
+        #print(c0,c1)
         value_c0 = handle_3d[c0]
         value_c1 = handle_3d[c1]
         self.interactor_c12.set_handle((value_c0,value_c1))
@@ -947,7 +948,7 @@ class MyModule:
         if self.layout == TWOBYTWO:
             self.interactor_c32.set_handle_col(col)
             self.interactor_c32.redraw()
-        print "in do_release",self.handle_3d, col
+        print("in do_release",self.handle_3d, col)
 
         t = time.time()
         if 0:
@@ -979,11 +980,11 @@ class MyModule:
         bg_4 = fig.canvas.copy_from_bbox(self.ax4.bbox)
 
         #left
-        print "updating..."
+        print("updating...")
         self.dataset.display_rgb(wh=selection,im=self.im) #axs=self.ax3) #
         self.ax4.draw_artist(self.im)
         fig.canvas.blit(self.ax4.bbox)
-        print "done updating! (resize the window if you don't see any graphs after the initial import, I need to fix that)"
+        print("done updating! (resize the window if you don't see any graphs after the initial import, I need to fix that)")
         #col = self.dataset.get_rgb_col(wh=selection)
 
         if 0:
@@ -1004,12 +1005,12 @@ def XTBB(aImarisId):
 
     # Check if the object is valid
     if vImaris is None:
-        print "Could not connect to Imaris!"
+        print("Could not connect to Imaris!")
         exit(1)
 
     vDataSet = vImaris.GetDataSet()
     if vDataSet is None:
-        print "No data available!"
+        print("No data available!")
         exit(1)
 
     #The hotswap module watcher...

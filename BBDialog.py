@@ -20,6 +20,7 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
 
+from __future__ import print_function
 import Tkinter as tk
 import ttk
 from TkDialog import TkDialog
@@ -129,7 +130,7 @@ class BBDialog(TkDialog):
 
     def OnDump(self,*args):
         '''Print the contents of the array'''
-        print self.arrayvar.get()
+        print(self.arrayvar.get())
 
     def SetDefaults(self):
         #Here you set default values
@@ -166,19 +167,19 @@ class BBDialog(TkDialog):
         self.DoImport()
 
     def DoImport(self):
-        print "Importing from Imaris!"
+        print("Importing from Imaris!")
 
     def OnExport(self,*args):
         self.DoExport()
 
     def DoExport(self):
-        print "Exporting to Imaris!"
+        print("Exporting to Imaris!")
 
     def OnUpdateObjects(self,*args):
         self.UpdateObjects(update=True)
 
     def UpdateObjects(self, *args, **kwargs):
-        print "Updating the objects..."
+        print("Updating the objects...")
 
 if __name__ == "__main__":
     app=BBDialog()

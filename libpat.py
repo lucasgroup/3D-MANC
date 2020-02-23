@@ -1,3 +1,10 @@
+"""
+The main brainbow classes.
+
+Here we have two classes, one for generating synthetic images and
+one for analysing images.
+"""
+from __future__ import print_function
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -11,32 +18,56 @@ import time
 try:
     import nativebb
 except:
-    print "nativebb could not be found. Download / Install from http://github.com/lucasgroup/nativebb"
+    print("nativebb could not be found. Download / Install from http://github.com/lucasgroup/nativebb")
 
 try:
     import libatrous
 except:
-    print "libatrous could not be found. Download / Install from http://github.com/zindy/libatrous"
+    print("libatrous could not be found. Download / Install from http://github.com/zindy/libatrous")
 
 
 class Analysis(object):
+    """
+    The Analysis class.
+
+    Here we have all the code needed for analysing and displaying PCA clouds.
+    """
     def __init__(self,nbit=8):
+        """
+        Constructor
+        """
         self.maxval = np.power(2,nbit)-1
         self.nbit = nbit
         self.normalise()
         self.sel_indexes = None
 
-    def set_ssize(self,ssize):
+    def set_ssize(self,ssize=40000):
+        """
+        Set the number of points to display in the clouds.
+
+        This function takes a number of points and returns the indexes of the points in the reduced cloud.
+
+        Keyword arguments:
+            ssize -- the number of random points to display (defauly 40000)
+
+        Returns:
+            The indexes of the selected points
+
+        Intent:
+            The intent is to reduce the number of points displayed as crosses by matplotlib.
+            Originally, we used a number of random points set by ssize.
+            This code is now bypassed and we use point deduplication.
+        """
         if ssize > 0:
             n = self.rgb_pca.shape[0] #np.product(self.r.shape)
-            #print "n=%d" % n
+            #print("n=%d" % n)
 
             if 0:
                 #This is just for display, doesn't matter if several crosses overlap.
-                print ">>> From %d points, displaying %d" % (n, ssize)
+                print(">>> From %d points, displaying %d" % (n, ssize))
                 self.sel_indexes = np.random.choice(n,ssize) #,replace=False)
             elif 1:
-                print ">>> Using Colour deduplication..."
+                print(">>> Using Colour deduplication...")
                 # This one is a bit more clever and tries grid deduplication
                 r = self.rgb_values[:,0].astype(np.uint16)
                 g = self.rgb_values[:,1].astype(np.uint16)
@@ -45,17 +76,17 @@ class Analysis(object):
                 #Need at least 10 points in the grid location
                 t_truth = 3
                 self.sel_indexes = nativebb.dedupcol_indexes(r,g,b,self.nbit,7, t_truth)
-                print "    from %d to %d unique." % (n,self.sel_indexes.shape[0])
+                print("    from %d to %d unique." % (n,self.sel_indexes.shape[0]))
 
             else:
                 f = np.sum(self.rgb_values,axis=1)
-                print f.shape
+                print(f.shape)
                 mid = np.max(f) / 20
                 truth = f < mid
                 wh1 = np.nonzero(truth)[0]
-                print wh1.shape
+                print(wh1.shape)
                 wh2 = np.nonzero(1-truth)[0]
-                print wh2.shape
+                print(wh2.shape)
                 n1 = wh1.shape[0]
                 n2 = wh2.shape[0]
                 m1 = ssize/5
@@ -74,27 +105,35 @@ class Analysis(object):
                 else:
                     ind2 = np.random.choice(wh2,m2) #] wh1[np.random.choice(n1,ssize/4)]
 
-                print "For r+g+b < %d, kept %d values (%.1f percent of the %d available pixels)" % (mid,m1,100.*m1/n1, n1)
-                print "For r+g+b >= %d, kept %d values (%.1f percent of the %d available pixels)" % (mid,m2,100.*m2/n2, n2)
+                print("For r+g+b < %d, kept %d values (%.1f percent of the %d available pixels)" % (mid,m1,100.*m1/n1, n1))
+                print("For r+g+b >= %d, kept %d values (%.1f percent of the %d available pixels)" % (mid,m2,100.*m2/n2, n2))
 
                 self.sel_indexes = np.hstack((ind1,ind2))
                 m = self.sel_indexes.shape[0]
-                print "Overall kept %d out of %d (%.1f percent)" % (m,n,100.*m/n)
+                print("Overall kept %d out of %d (%.1f percent)" % (m,n,100.*m/n))
         else:
             self.sel_indexes = None
 
+        return self.sel_indexes
+
     def init_pca(self):
+        """
+        Initializes mdp for NIPALS PCA conversion
+        """
         #self.pcanode = mdp.nodes.PCANode()
         self.pcanode = mdp.nodes.NIPALSNode()
         rgb_,wh = self.get_pixels(threshold=0,remove_bg=True)
-        print "begin pcanode.train()..."
+        print("begin pcanode.train()...")
         self.pcanode.train(rgb_)
-        print "begin conversion..."
+        print("begin conversion...")
         self.rgb_pca = self.pcanode(rgb_)
         self.rgb_values = rgb_
-        print "done!"
+        print("done!")
 
     def normalise(self):
+        """
+        Ensures the RGB values are all between 0 and self.maxval
+        """
         if self.r is None:
             return
         self.r[self.r < 0] = 0
@@ -105,6 +144,15 @@ class Analysis(object):
         self.b[self.b > self.maxval] = self.maxval
 
     def add_poisson(self,lam=50):
+        """
+        Add poisson noise.
+
+        Keyword Arguments:
+            lam -- Expectation of interval (default 50).
+
+        Returns:
+            r,g,b arrays with added poisson noise.
+        """
         shape = self.r.shape
         self.r += np.random.poisson(lam,shape)
         self.g += np.random.poisson(lam,shape)
@@ -113,7 +161,16 @@ class Analysis(object):
         return self.r, self.g, self.b
 
     def add_gaussian(self,sigma):
-        print "adding noise!"
+        """
+        Add Gaussian noise.
+
+        Keyword Arguments:
+            sigma -- standard deviation (a single value or a list of 3 values for RGB).
+
+        Returns:
+            r,g,b arrays with added Gaussian noise.
+        """
+        print("adding noise!")
         if type(sigma) is list:
             sigma_r, sigma_g, sigma_b = sigma
         else:
@@ -130,6 +187,12 @@ class Analysis(object):
         return self.r, self.g, self.b
 
     def add_speckle(self):
+        """
+        Add Speckle noise.
+
+        Returns:
+            r,g,b arrays with added Speckle noise.
+        """
         shape = self.r.shape
         self.r += self.r * np.random.randn(*shape).reshape(shape)
         self.g += self.g * np.random.randn(*shape).reshape(shape)
@@ -138,7 +201,13 @@ class Analysis(object):
         return self.r, self.g, self.b
 
     def display(self,names=["Red","Green","Blue"]):
-        #This displays the Green and Red projections side by side:
+        """
+        Displays the Red Green Blue and RGB max projections side by side.
+
+        Keyword Arguments:
+            names -- Names of the channels as a list (default: ["Red","Green","Blue"])
+
+        """
         fig, axs = plt.subplots(1,4, figsize=(20,10))
 
         axs[0].set_title(names[0]);
@@ -168,12 +237,11 @@ class Analysis(object):
         im4 = axs[3].imshow(rgb_uint8)
         plt.show()
 
-
     def get_handle_from_pos(self,x,y):
         x = int(round(x))
         y = int(round(y))
         rgb = np.array([[self.r[y,x],self.g[y,x],self.b[y,x]]])
-        #print ">>> rgb",rgb
+        #print(">>> rgb",rgb)
         rgb_pca = self.pcanode(rgb)[0]
         return rgb_pca
 
@@ -298,7 +366,7 @@ class Analysis(object):
             n = rgb.shape[0]
             m = np.sum(tt)
             rgb = rgb[tt].astype(float)
-            print "Threshold is %d. Kept %d out of %d (%.1f percent)" % (threshold,m,n,100.*m/n)
+            print("Threshold is %d. Kept %d out of %d (%.1f percent)" % (threshold,m,n,100.*m/n))
 
         return rgb,tt
 
@@ -326,7 +394,7 @@ class Analysis(object):
 
         fig, axs = plt.subplots(1,3, figsize=(20,5))
         for i in range(3):
-            print "Component %d range: %f %f" % (i+1,np.min(rgb_pca[:,i]),np.max(rgb_pca[:,i]))
+            print("Component %d range: %f %f" % (i+1,np.min(rgb_pca[:,i]),np.max(rgb_pca[:,i])))
 
             n, bins, patches = axs[i].hist(rgb_pca[:,i], 50, normed=1, range=[np.min(rgb_pca[:,i]),np.max(rgb_pca[:,i])],facecolor='green', alpha=0.75)
             #axs[i].set_title("PC%d" % (i+1));
@@ -337,7 +405,7 @@ class Analysis(object):
         yzero = np.zeros(3)
         if not unit:
             yzero = self.pcanode([yzero])[0]
-        print "(0,0,0)",yzero
+        print("(0,0,0)",yzero)
 
         el = Ellipse((yzero[c0],yzero[c1]), 5, 5,edgecolor='k',facecolor='r')
         axs.add_patch(el)
@@ -356,7 +424,7 @@ class Analysis(object):
         yzero = np.ones(3)*self.maxval
         if not unit:
             yzero = self.pcanode([yzero])[0]
-        print "(1,1,1)",yzero
+        print("(1,1,1)",yzero)
 
         el = Ellipse((yzero[c0],yzero[c1]), 5, 5,edgecolor='k',facecolor='g')
         axs.add_patch(el)
@@ -391,7 +459,7 @@ class Analysis(object):
             mi1, ma1 = ylim
         b1 = (ma1-mi1)*.1
 
-        print np.min(rgb_pca[:,c1]), np.max(rgb_pca[:,c1])
+        print(np.min(rgb_pca[:,c1]), np.max(rgb_pca[:,c1]))
 
         #bin size
         bins0 = 100
@@ -421,9 +489,9 @@ class Analysis(object):
     def get_selection(self,wh):
         ret = np.zeros(self.r.size,bool)
         t = time.time()
-        print "zeroing..."
+        print("zeroing...")
         ret[self.wh_selection[np.nonzero(wh)[0]]] = True
-        print "done zeroing...",time.time()-t
+        print("done zeroing...",time.time()-t)
 
         return ret
 
@@ -475,7 +543,7 @@ class Analysis(object):
             #This is just for display, doesn't matter if several crosses overlap.
             indexes = self.sel_indexes
             ssize = indexes.shape[0]
-            print "Will plot %d crosses" % ssize
+            print("Will plot %d crosses" % ssize)
             x = x[indexes]
             y = y[indexes]
             rgb_selection = np.zeros((ssize,4),float)
@@ -516,7 +584,7 @@ class Analysis(object):
 
     def update_3d_dots(self, scat, selected, alpha=0.2):
         ma = float(self.maxval)
-        print np.min(selected),np.max(selected)
+        print(np.min(selected),np.max(selected))
 
         rgb_selection = self.rgb_selection.copy()
         rgb_selection[np.invert(selected),:] = 0
@@ -533,7 +601,7 @@ class Analysis(object):
         else:
             rgb = rgb_selection
 
-        print "update the colours?"
+        print("update the colours?")
         scat.set_edgecolors(rgb)
         #scat.set_colors(rgb)
         scat.changed()
@@ -759,7 +827,7 @@ class Image(Analysis):
 
 
         nbit = self.nbit
-        #print "set_data, nbit=%d" % self.nbit
+        #print("set_data, nbit=%d" % self.nbit)
         if r.dtype == np.uint8 or r.dtype == np.uint16:
             r2, g2, b2 = r.copy(), g.copy(), b.copy()
             if r.dtype == np.uint8:
