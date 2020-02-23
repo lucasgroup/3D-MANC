@@ -31,7 +31,7 @@
 import matplotlib as mpl
 mpl.use('TkAgg')
 from mpl_toolkits.mplot3d import Axes3D
-import libbrainbow
+import nativebb
 
 import BBDialog
 import Tkinter as tk
@@ -737,12 +737,12 @@ class MyModule:
                 if self.selection is None:
                     xy = self.dataset.rgb_pca[:,self.sel0_comp].astype(np.float32)
                     poly_xy = self.interactor_c12.get_poly()
-                    wh_12 = libbrainbow.isinside(xy,poly_xy)
+                    wh_12 = nativebb.isinside(xy,poly_xy)
                     #wh_12 = self.interactor_c12.is_inside(xy)
 
                     xy = self.dataset.rgb_pca[:,self.sel1_comp].astype(np.float32)
                     poly_xy = self.interactor_c13.get_poly()
-                    wh_13 = libbrainbow.isinside(xy,poly_xy)
+                    wh_13 = nativebb.isinside(xy,poly_xy)
                     #wh_13 = self.interactor_c13.is_inside(xy)
 
                     #This is where we assign pixels in the two bands
@@ -958,10 +958,10 @@ class MyModule:
         else:
             xy = self.dataset.rgb_pca[:,self.sel0_comp].astype(np.float32)
             poly_xy = self.interactor_c12.get_poly()
-            wh_12 = libbrainbow.isinside(xy,poly_xy)
+            wh_12 = nativebb.isinside(xy,poly_xy)
             xy = self.dataset.rgb_pca[:,self.sel1_comp].astype(np.float32)
             poly_xy = self.interactor_c13.get_poly()
-            wh_13 = libbrainbow.isinside(xy,poly_xy)
+            wh_13 = nativebb.isinside(xy,poly_xy)
 
         #This is where we assign pixels in the two bands
         wh = np.bitwise_and(wh_12,wh_13)

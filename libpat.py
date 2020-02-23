@@ -11,7 +11,7 @@ import time
 try:
     import nativebb
 except:
-    print "nativebb could not be found. Download / Install from http://github.com/zindy/libbrainbow"
+    print "nativebb could not be found. Download / Install from http://github.com/lucasgroup/nativebb"
 
 try:
     import libatrous
